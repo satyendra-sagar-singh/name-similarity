@@ -1,0 +1,85 @@
+{
+  "name": "name-similarity",
+  "version": "0.5.0",
+  "description": "Person-name matching that understands names — normalization, parsing, phonetics, nicknames, initials, abbreviations, reordering and transliteration, behind an explainable 1-100 score.",
+  "keywords": [
+    "name",
+    "name-matching",
+    "fuzzy-matching",
+    "record-linkage",
+    "entity-resolution",
+    "identity",
+    "kyc",
+    "levenshtein",
+    "jaro-winkler",
+    "double-metaphone",
+    "soundex",
+    "transliteration",
+    "deduplication"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Satyendra Sagar Singh",
+    "email": "satyendra.sagar@icloud.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/satyendra-sagar-singh/name-similarity.git"
+  },
+  "homepage": "https://github.com/satyendra-sagar-singh/name-similarity#readme",
+  "bugs": {
+    "url": "https://github.com/satyendra-sagar-singh/name-similarity/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "bench": "tsx scripts/run-benchmark.ts",
+    "bench:perf": "tsx scripts/run-perf.ts",
+    "validate": "tsx scripts/validate.ts",
+    "compare": "tsx scripts/compare-libraries.ts",
+    "dataset:build": "tsx scripts/build-dataset.ts",
+    "dataset:holdout": "tsx scripts/build-dataset.ts --seed 777001 --out datasets/benchmark/holdout.json --no-curated",
+    "dataset:english": "tsx scripts/build-dataset.ts --culture anglo --seed 424242 --out datasets/benchmark/english.json --no-curated",
+    "dataset:indian": "tsx scripts/build-dataset.ts --culture south-asian --seed 515151 --out datasets/benchmark/indian.json --no-curated",
+    "tune": "tsx scripts/tune-heuristic.ts",
+    "train": "tsx scripts/train.ts",
+    "check:package": "publint && attw --pack .",
+    "prepublishOnly": "npm run typecheck && npm run test:coverage && npm run build && npm run check:package"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^2.1.8",
+    "publint": "^0.3.21",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

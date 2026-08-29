@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20', '22']
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+
+      # The held-out set is generated rather than committed, so the benchmark
+      # tests can verify generalisation on every run.
+      - name: Build held-out benchmark set
+        run: npm run dataset:build -- --seed 777001 --out datasets/benchmark/holdout.json --no-curated
+
+      - name: Verify the committed dataset is reproducible
+        run: |
+          npm run dataset:build
+          git diff --exit-code datasets/
+
+      - run: npm test
+      - run: npm run build
+      - run: npm run check:package
+
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run dataset:build -- --seed 777001 --out datasets/benchmark/holdout.json --no-curated
+      - name: Accuracy report
+        run: npm run validate
+      - name: Per-category report
+        run: npm run bench -- --worst 25

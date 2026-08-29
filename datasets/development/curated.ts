@@ -1,0 +1,925 @@
+import type { LabeledPair } from '../../src/types.js';
+
+/**
+ * Hand-curated benchmark pairs.
+ *
+ * This is the set that actually measures difficulty. The generated dataset
+ * exercises mechanics at volume; these are the cases where a plausible engine
+ * gets the answer wrong, including every scenario named in the specification.
+ *
+ * Labelling stance, applied consistently:
+ *  - a recognised spelling or transliteration variant of the same name is a match;
+ *  - a distinct name that merely looks similar is not, even when one is a prefix
+ *    of the other (`Raj` / `Rajesh`);
+ *  - agreement on only one of the two discriminating slots is not a match.
+ */
+
+const pairs: LabeledPair[] = [
+  /* ------------------------------ exact --------------------------------- */
+  { a: 'John Smith', b: 'John Smith', expected: 'match', category: 'exact' },
+  { a: 'Mary Elizabeth Jones', b: 'Mary Elizabeth Jones', expected: 'match', category: 'exact' },
+  { a: 'Zbigniew Kowalczyk', b: 'Zbigniew Kowalczyk', expected: 'match', category: 'exact' },
+  { a: 'Ng Wei Ming', b: 'Ng Wei Ming', expected: 'match', category: 'exact' },
+  { a: "Sinead O'Connor", b: "Sinead O'Connor", expected: 'match', category: 'exact' },
+
+  /* ------------------------------- case ---------------------------------- */
+  { a: 'JOHN SMITH', b: 'john smith', expected: 'match', category: 'case' },
+  { a: 'McDonald', b: 'MCDONALD', expected: 'match', category: 'case' },
+  { a: 'aNgElA mErKeL', b: 'Angela Merkel', expected: 'match', category: 'case' },
+  { a: 'van der BERG, Jan', b: 'Jan van der Berg', expected: 'match', category: 'case' },
+
+  /* ------------------------------ accent --------------------------------- */
+  { a: 'José García', b: 'Jose Garcia', expected: 'match', category: 'accent' },
+  { a: 'Zoë Müller', b: 'Zoe Mueller', expected: 'match', category: 'accent' },
+  { a: 'François Lefèvre', b: 'Francois Lefevre', expected: 'match', category: 'accent' },
+  { a: 'Søren Kierkegaard', b: 'Soren Kierkegaard', expected: 'match', category: 'accent' },
+  { a: 'Łukasz Piątek', b: 'Lukasz Piatek', expected: 'match', category: 'accent' },
+  { a: 'Þór Jónsson', b: 'Thor Jonsson', expected: 'match', category: 'accent' },
+  { a: 'Ægir Hansen', b: 'Aegir Hansen', expected: 'match', category: 'accent' },
+  { a: 'Renée Zellweger', b: 'Renee Zellweger', expected: 'match', category: 'accent' },
+  {
+    a: 'Nuñez',
+    b: 'Nunes',
+    expected: 'match',
+    category: 'accent',
+    note:
+      'Judgment call: the Spanish -ez / Portuguese -es endings are treated as one ' +
+      'surname family throughout, consistent with Gomez/Gomes and Perez/Peres. ' +
+      'A registry that must keep them apart should add them via the aliases option.',
+  },
+
+  /* ------------------------------ unicode -------------------------------- */
+  { a: 'Ｊｏｈｎ Ｓｍｉｔｈ', b: 'John Smith', expected: 'match', category: 'unicode' },
+  { a: 'ﬁona Fitzgerald', b: 'fiona Fitzgerald', expected: 'match', category: 'unicode' },
+  { a: 'John​Smith Jones', b: 'JohnSmith Jones', expected: 'match', category: 'unicode' },
+  { a: 'Ana Maria Lopez', b: 'Ana Maria Lopez', expected: 'match', category: 'unicode' },
+
+  /* -------------------------------- typo --------------------------------- */
+  { a: 'John Smith', b: 'Jon Smith', expected: 'match', category: 'typo' },
+  { a: 'Jennifer Anderson', b: 'Jenifer Anderson', expected: 'match', category: 'typo' },
+  { a: 'Christopher Nolan', b: 'Christopher Nolann', expected: 'match', category: 'typo' },
+  { a: 'Priyanka Chopra', b: 'Priyanks Chopra', expected: 'match', category: 'typo' },
+  { a: 'Wolfgang Schneider', b: 'Wolfgang Schnieder', expected: 'match', category: 'typo' },
+  { a: 'Kowalczyk Zbigniew', b: 'Kowalzcyk Zbigniew', expected: 'match', category: 'typo' },
+  { a: 'Benedict Cumberbatch', b: 'Benedict Cumberbach', expected: 'match', category: 'typo' },
+  { a: 'Aleksandra Nowakowska', b: 'Aleksandra Nowakowsla', expected: 'match', category: 'typo' },
+  {
+    a: 'Ali Khan',
+    b: 'Adi Khan',
+    expected: 'different',
+    category: 'typo',
+    note: 'One edit in a three-letter given name is a different name, not a typo',
+  },
+  {
+    a: 'Dan Brown',
+    b: 'Don Brown',
+    expected: 'different',
+    category: 'typo',
+    note: 'Both are complete, common given names',
+  },
+
+  /* --------------------------- transposition ----------------------------- */
+  { a: 'Jonh Smith', b: 'John Smith', expected: 'match', category: 'transposition' },
+  { a: 'Micheal Jordan', b: 'Michael Jordan', expected: 'match', category: 'transposition' },
+  { a: 'Stephanie Grahm', b: 'Stephanie Graham', expected: 'match', category: 'transposition' },
+  { a: 'Rajesh Kuamr', b: 'Rajesh Kumar', expected: 'match', category: 'transposition' },
+  { a: 'Fedrico Rossi', b: 'Federico Rossi', expected: 'match', category: 'transposition' },
+
+  /* ------------------------------ initials ------------------------------- */
+  { a: 'A K Sharma', b: 'Ajay Kumar Sharma', expected: 'match', category: 'initials' },
+  { a: 'A. K. Sharma', b: 'Ajay K Sharma', expected: 'match', category: 'initials' },
+  { a: 'J. R. R. Tolkien', b: 'John Ronald Reuel Tolkien', expected: 'match', category: 'initials' },
+  { a: 'H. G. Wells', b: 'Herbert George Wells', expected: 'match', category: 'initials' },
+  { a: 'M K Gandhi', b: 'Mohandas Karamchand Gandhi', expected: 'match', category: 'initials' },
+  { a: 'Sarah J Maas', b: 'Sarah Janet Maas', expected: 'match', category: 'initials' },
+  {
+    a: 'A K Sharma',
+    b: 'Anil Kumar Sharma',
+    expected: 'match',
+    category: 'initials',
+    note: 'Initials are compatible; the engine cannot and should not distinguish Ajay from Anil here',
+  },
+  {
+    a: 'A K Sharma',
+    b: 'Vijay Kumar Sharma',
+    expected: 'different',
+    category: 'initials',
+    note: 'The leading initial contradicts the given name',
+  },
+  {
+    a: 'R Patel',
+    b: 'S Patel',
+    expected: 'different',
+    category: 'initials',
+    note: 'Initials disagree and there is nothing else to go on',
+  },
+  {
+    a: 'J Smith',
+    b: 'J Smith',
+    expected: 'match',
+    category: 'initials',
+    note: 'Identical, but a very weak identification in practice',
+  },
+
+  /* ---------------------------- abbreviation ----------------------------- */
+  { a: 'Mohd Rahman', b: 'Mohammad Rahman', expected: 'match', category: 'abbreviation' },
+  { a: 'Md Abdul Karim', b: 'Mohammad Abdul Karim', expected: 'match', category: 'abbreviation' },
+  { a: 'Muhd Yusof', b: 'Muhammad Yusof', expected: 'match', category: 'abbreviation' },
+  { a: 'Wm Shakespeare', b: 'William Shakespeare', expected: 'match', category: 'abbreviation' },
+  { a: 'Robt Baratheon', b: 'Robert Baratheon', expected: 'match', category: 'abbreviation' },
+  { a: 'Thos Cromwell', b: 'Thomas Cromwell', expected: 'match', category: 'abbreviation' },
+  { a: 'Chas Dickens', b: 'Charles Dickens', expected: 'match', category: 'abbreviation' },
+  { a: 'Benj Franklin', b: 'Benjamin Franklin', expected: 'match', category: 'abbreviation' },
+  { a: 'Mohammad Abdul Rahman', b: 'Mohd A Rahman', expected: 'match', category: 'abbreviation' },
+  {
+    a: 'Raj Kumar',
+    b: 'Rajesh Kumar',
+    expected: 'different',
+    category: 'abbreviation',
+    note: 'Raj is a complete given name, not a contraction of Rajesh',
+  },
+  {
+    a: 'Ana Silva',
+    b: 'Anastasia Silva',
+    expected: 'different',
+    category: 'abbreviation',
+    note: 'Prefix containment is not abbreviation evidence when the short form stands alone',
+  },
+  {
+    a: 'Ram Prasad',
+    b: 'Ramesh Prasad',
+    expected: 'different',
+    category: 'abbreviation',
+  },
+
+  /* -------------------------- missing-middle ------------------------------ */
+  { a: 'John Michael Smith', b: 'John Smith', expected: 'match', category: 'missing-middle' },
+  { a: 'Mary Anne Elizabeth Cole', b: 'Mary Cole', expected: 'match', category: 'missing-middle' },
+  { a: 'Carlos Alberto Fernandez', b: 'Carlos Fernandez', expected: 'match', category: 'missing-middle' },
+  { a: 'Aditya Vikram Birla', b: 'Aditya Birla', expected: 'match', category: 'missing-middle' },
+  { a: 'Jose Garcia Marquez', b: 'Jose Marquez', expected: 'match', category: 'missing-middle' },
+  {
+    a: 'John A Smith',
+    b: 'John B Smith',
+    expected: 'different',
+    category: 'missing-middle',
+    note: 'Both middle initials are present and contradict each other',
+  },
+  {
+    a: 'John Michael Smith',
+    b: 'John Patrick Smith',
+    expected: 'different',
+    category: 'missing-middle',
+    note: 'Two recorded middle names that disagree',
+  },
+
+  /* --------------------------- extra-middle ------------------------------- */
+  { a: 'John Smith', b: 'John Michael Smith', expected: 'match', category: 'extra-middle' },
+  { a: 'Fatima Khan', b: 'Fatima Bibi Khan', expected: 'match', category: 'extra-middle' },
+  { a: 'Nelson Mandela', b: 'Nelson Rolihlahla Mandela', expected: 'match', category: 'extra-middle' },
+
+  /* ------------------------------ phonetic -------------------------------- */
+  { a: 'Steven Clark', b: 'Stephen Clark', expected: 'match', category: 'phonetic' },
+  { a: 'Catherine Weber', b: 'Katherine Weber', expected: 'match', category: 'phonetic' },
+  { a: 'Sofia Rossi', b: 'Sophia Rossi', expected: 'match', category: 'phonetic' },
+  { a: 'Geoffrey Hall', b: 'Jeffrey Hall', expected: 'match', category: 'phonetic' },
+  { a: 'Sean Murphy', b: 'Shaun Murphy', expected: 'match', category: 'phonetic' },
+  { a: 'Nicolas Meyer', b: 'Nicholas Meier', expected: 'match', category: 'phonetic' },
+  { a: 'Deborah Schmidt', b: 'Debra Schmitt', expected: 'match', category: 'phonetic' },
+  { a: 'Clair Fitzgerald', b: 'Claire Fitzgerald', expected: 'match', category: 'phonetic' },
+  {
+    a: 'Karl Bauer',
+    b: 'Carl Baur',
+    expected: 'match',
+    category: 'phonetic',
+    note: 'Both parts are attested spelling variants of the same German name',
+  },
+  {
+    a: 'Sean Byrne',
+    b: 'John Byrne',
+    expected: 'different',
+    category: 'phonetic',
+    note: 'Sean is the Irish form of John but they are separate given names in a register',
+  },
+
+  /* ------------------------------ nickname -------------------------------- */
+  { a: 'Bob Smith', b: 'Robert Smith', expected: 'match', category: 'nickname' },
+  { a: 'Bill Gates', b: 'William Gates', expected: 'match', category: 'nickname' },
+  { a: 'Mike Tyson', b: 'Michael Tyson', expected: 'match', category: 'nickname' },
+  { a: 'Steve Rogers', b: 'Steven Rogers', expected: 'match', category: 'nickname' },
+  { a: 'Liz Taylor', b: 'Elizabeth Taylor', expected: 'match', category: 'nickname' },
+  { a: 'Peggy Carter', b: 'Margaret Carter', expected: 'match', category: 'nickname' },
+  { a: 'Dick Grayson', b: 'Richard Grayson', expected: 'match', category: 'nickname' },
+  { a: 'Tony Stark', b: 'Anthony Stark', expected: 'match', category: 'nickname' },
+  { a: 'Kate Bishop', b: 'Katherine Bishop', expected: 'match', category: 'nickname' },
+  { a: 'Jack Ryan', b: 'John Ryan', expected: 'match', category: 'nickname' },
+  {
+    a: 'Bob Smith',
+    b: 'Bill Smith',
+    expected: 'different',
+    category: 'nickname',
+    note: 'Two nicknames of two different full names',
+  },
+  {
+    a: 'Kim Parker',
+    b: 'Kimberly Parker',
+    expected: 'different',
+    category: 'nickname',
+    note: 'Kim is a standalone given name; treat prefix containment as weak',
+  },
+
+  /* -------------------------------- alias --------------------------------- */
+  { a: 'Katherine Jones', b: 'Kathryn Jones', expected: 'match', category: 'alias' },
+  { a: 'Sarah Connor', b: 'Sara Connor', expected: 'match', category: 'alias' },
+  { a: 'Aaron Levy', b: 'Aron Levy', expected: 'match', category: 'alias' },
+  { a: 'Rachael Green', b: 'Rachel Green', expected: 'match', category: 'alias' },
+  { a: 'Bryan Adams', b: 'Brian Adams', expected: 'match', category: 'alias' },
+  { a: 'Anderson Cooper', b: 'Andersen Cooper', expected: 'match', category: 'alias' },
+  { a: 'Ahmed Hassan', b: 'Ahmad Hasan', expected: 'match', category: 'alias' },
+  { a: 'Aisha Begum', b: 'Ayesha Begum', expected: 'match', category: 'alias' },
+  { a: 'Chowdhury Rahim', b: 'Choudhury Rahim', expected: 'match', category: 'alias' },
+
+  /* --------------------------- transliteration ---------------------------- */
+  { a: 'राहुल शर्मा', b: 'Rahul Sharma', expected: 'match', category: 'transliteration' },
+  { a: 'अजय कुमार', b: 'Ajay Kumar', expected: 'match', category: 'transliteration' },
+  { a: 'प्रिया सिंह', b: 'Priya Singh', expected: 'match', category: 'transliteration' },
+  { a: 'सुनील गुप्ता', b: 'Sunil Gupta', expected: 'match', category: 'transliteration' },
+  { a: 'محمد علي', b: 'Mohammad Ali', expected: 'match', category: 'transliteration' },
+  { a: 'أحمد حسن', b: 'Ahmed Hassan', expected: 'match', category: 'transliteration' },
+  { a: 'فاطمة خان', b: 'Fatima Khan', expected: 'match', category: 'transliteration' },
+  { a: 'عمر خالد', b: 'Omar Khalid', expected: 'match', category: 'transliteration' },
+  { a: 'Владимир Петров', b: 'Vladimir Petrov', expected: 'match', category: 'transliteration' },
+  { a: 'Дмитрий Смирнов', b: 'Dmitry Smirnov', expected: 'match', category: 'transliteration' },
+  { a: 'Γεώργιος Παπαδόπουλος', b: 'Georgios Papadopoulos', expected: 'match', category: 'transliteration' },
+  { a: 'Mohammad Ali', b: 'Muhammad Aly', expected: 'match', category: 'transliteration' },
+  { a: 'Yusuf Ibrahim', b: 'Yousef Ebrahim', expected: 'match', category: 'transliteration' },
+  { a: 'Abdul Rahman', b: 'Abdur Rehman', expected: 'match', category: 'transliteration' },
+  {
+    a: 'राहुल शर्मा',
+    b: 'Rakesh Sharma',
+    expected: 'different',
+    category: 'transliteration',
+    note: 'Transliteration must not smear two different given names together',
+  },
+  {
+    a: 'محمد علي',
+    b: 'Mahmoud Ali',
+    expected: 'different',
+    category: 'transliteration',
+    note: 'Muhammad and Mahmoud are separate names that share a consonant root',
+  },
+
+  /* ----------------------------- token-order ------------------------------ */
+  { a: 'John Smith', b: 'Smith John', expected: 'match', category: 'token-order' },
+  { a: 'Smith, John', b: 'John Smith', expected: 'match', category: 'token-order' },
+  { a: 'Garcia Lopez, Maria', b: 'Maria Garcia Lopez', expected: 'match', category: 'token-order' },
+  { a: 'Kumar Ajay', b: 'Ajay Kumar', expected: 'match', category: 'token-order' },
+  { a: 'Chen Wei', b: 'Wei Chen', expected: 'match', category: 'token-order' },
+  { a: 'Nguyen Van An', b: 'An Van Nguyen', expected: 'match', category: 'token-order' },
+  {
+    a: 'Smith John',
+    b: 'Smith Peter',
+    expected: 'different',
+    category: 'token-order',
+    note: 'Shared family name in the leading slot is not enough',
+  },
+
+  /* ------------------------------- prefix --------------------------------- */
+  { a: 'Dr. John Smith', b: 'John Smith', expected: 'match', category: 'prefix' },
+  { a: 'Prof Dr Hans Weber', b: 'Hans Weber', expected: 'match', category: 'prefix' },
+  { a: 'Mrs. Emily Blunt', b: 'Emily Blunt', expected: 'match', category: 'prefix' },
+  { a: 'Capt. Steve Rogers', b: 'Steven Rogers', expected: 'match', category: 'prefix' },
+  { a: 'Shri Narendra Modi', b: 'Narendra Modi', expected: 'match', category: 'prefix' },
+  { a: 'Sheikh Mohammed Al Rashid', b: 'Mohammed Al Rashid', expected: 'match', category: 'prefix' },
+  {
+    a: 'Sri Devi',
+    b: 'Devi Prasad',
+    expected: 'different',
+    category: 'prefix',
+    note: 'Sri Devi is a full name; stripping the honorific would corrupt it',
+  },
+
+  /* ------------------------------- suffix --------------------------------- */
+  { a: 'Robert Downey Jr', b: 'Robert Downey', expected: 'match', category: 'suffix' },
+  { a: 'Martin Luther King Jr.', b: 'Martin Luther King', expected: 'match', category: 'suffix' },
+  { a: 'John Smith PhD', b: 'John Smith', expected: 'match', category: 'suffix' },
+  { a: 'Jane Doe, MD', b: 'Jane Doe', expected: 'match', category: 'suffix' },
+  {
+    a: 'John Smith Jr',
+    b: 'John Smith Sr',
+    expected: 'different',
+    category: 'suffix',
+    note: 'Father and son, the single most common suffix false positive',
+  },
+  {
+    a: 'Henry Ford II',
+    b: 'Henry Ford III',
+    expected: 'different',
+    category: 'suffix',
+  },
+  {
+    a: 'Md Rahman',
+    b: 'Rahman MD',
+    expected: 'different',
+    category: 'suffix',
+    note: 'Leading Md abbreviates Mohammad; trailing MD is a medical degree',
+  },
+
+  /* ----------------------------- hyphenation ------------------------------ */
+  { a: 'Mary-Jane Smith', b: 'Mary Jane Smith', expected: 'match', category: 'hyphenation' },
+  { a: 'Jean-Luc Picard', b: 'Jean Luc Picard', expected: 'match', category: 'hyphenation' },
+  { a: 'Anne-Sophie Mutter', b: 'Anne Sophie Mutter', expected: 'match', category: 'hyphenation' },
+  { a: 'Garcia-Lopez, Ana', b: 'Ana Garcia Lopez', expected: 'match', category: 'hyphenation' },
+  { a: "O'Brien Patrick", b: 'Patrick OBrien', expected: 'match', category: 'hyphenation' },
+  { a: "D'Angelo Russo", b: 'DAngelo Russo', expected: 'match', category: 'hyphenation' },
+
+  /* ------------------------------ particles ------------------------------- */
+  { a: 'Jan van der Berg', b: 'Jan Vanderberg', expected: 'match', category: 'particle' },
+  { a: 'Ludwig von Mises', b: 'Ludwig Von Mises', expected: 'match', category: 'particle' },
+  { a: 'Ana de la Cruz', b: 'Ana Dela Cruz', expected: 'match', category: 'particle' },
+  { a: 'Mohammed bin Salman', b: 'Mohammed Bin Salman', expected: 'match', category: 'particle' },
+  { a: 'Leonardo da Vinci', b: 'Leonardo Da Vinci', expected: 'match', category: 'particle' },
+  {
+    a: 'Ana de Souza',
+    b: 'Ana Souza',
+    expected: 'match',
+    category: 'particle',
+    note: 'Particles are frequently dropped in data entry',
+  },
+  {
+    a: 'Jan van der Berg',
+    b: 'Jan van der Bergh',
+    expected: 'match',
+    category: 'particle',
+  },
+  {
+    a: 'Maria de la Cruz',
+    b: 'Maria de la Torre',
+    expected: 'different',
+    category: 'particle',
+    note: 'Identical particles must not carry the match',
+  },
+
+  /* --------------------------- concatenation ------------------------------ */
+  { a: 'Abdul Rahman', b: 'Abdulrahman', expected: 'match', category: 'concatenation' },
+  { a: 'Abd El Aziz', b: 'Abdelaziz', expected: 'match', category: 'concatenation' },
+  { a: 'Ann Marie Kelly', b: 'Annmarie Kelly', expected: 'match', category: 'concatenation' },
+  { a: 'Mac Donald Ian', b: 'Ian MacDonald', expected: 'match', category: 'concatenation' },
+  { a: 'Sri Ram Iyer', b: 'Sriram Iyer', expected: 'match', category: 'concatenation' },
+
+  /* ----------------------------- short-name -------------------------------- */
+  { a: 'Li Wei', b: 'Li Wei', expected: 'match', category: 'short-name' },
+  { a: 'Wu Han', b: 'Wu Han', expected: 'match', category: 'short-name' },
+  {
+    a: 'John Lee',
+    b: 'Jon Li',
+    expected: 'different',
+    category: 'short-name',
+    note: 'Lee and Li are separate surnames in a Latin-script register',
+  },
+  {
+    a: 'Kim Lee',
+    b: 'Kim Lin',
+    expected: 'different',
+    category: 'short-name',
+  },
+  {
+    a: 'Amy Ng',
+    b: 'Amy Ng',
+    expected: 'match',
+    category: 'short-name',
+  },
+  {
+    a: 'Bo Li',
+    b: 'Bo Lu',
+    expected: 'different',
+    category: 'short-name',
+  },
+  {
+    a: 'Ravi Rao',
+    b: 'Ravi Roy',
+    expected: 'different',
+    category: 'short-name',
+  },
+
+  /* ---------------------------- common-name -------------------------------- */
+  {
+    a: 'John Smith',
+    b: 'John Smith',
+    expected: 'match',
+    category: 'common-name',
+    note: 'Identical strings; the score is 100 but the probability should stay modest',
+  },
+  { a: 'Maria Garcia', b: 'Maria Garcia', expected: 'match', category: 'common-name' },
+  { a: 'Mohammed Khan', b: 'Mohammad Khan', expected: 'match', category: 'common-name' },
+  {
+    a: 'John Smith',
+    b: 'Jane Smith',
+    expected: 'different',
+    category: 'common-name',
+  },
+  {
+    a: 'Wei Zhang',
+    b: 'Wei Wang',
+    expected: 'different',
+    category: 'common-name',
+  },
+  {
+    a: 'Mohammed Khan',
+    b: 'Mahmood Khan',
+    expected: 'different',
+    category: 'common-name',
+  },
+
+  /* ---------------------------- single-token -------------------------------- */
+  { a: 'Madonna', b: 'Madonna', expected: 'match', category: 'single-token' },
+  { a: 'Ronaldo', b: 'Ronaldo', expected: 'match', category: 'single-token' },
+  {
+    a: 'Smith',
+    b: 'John Smith',
+    expected: 'different',
+    category: 'single-token',
+    note: 'A bare surname cannot identify a person',
+  },
+  {
+    a: 'Prince',
+    b: 'Prince Rogers Nelson',
+    expected: 'different',
+    category: 'single-token',
+    note: 'Same individual in reality, but a matcher has no basis to assert it',
+  },
+  { a: 'Ronaldo', b: 'Ronaldinho', expected: 'different', category: 'single-token' },
+
+  /* ---------------------------- false-positive ------------------------------ */
+  { a: 'John Smith', b: 'Peter Smith', expected: 'different', category: 'false-positive' },
+  { a: 'John Smith', b: 'John Jones', expected: 'different', category: 'false-positive' },
+  { a: 'John Smith', b: 'Peter Jones', expected: 'different', category: 'false-positive' },
+  { a: 'Michael Johnson', b: 'Michelle Johnson', expected: 'different', category: 'false-positive' },
+  { a: 'Daniel Craig', b: 'Danielle Craig', expected: 'different', category: 'false-positive' },
+  { a: 'Patrick Stewart', b: 'Patricia Stewart', expected: 'different', category: 'false-positive' },
+  { a: 'Gabriel Fernandez', b: 'Gabrielle Fernandez', expected: 'different', category: 'false-positive' },
+  { a: 'Erik Larsson', b: 'Erika Larsson', expected: 'different', category: 'false-positive' },
+  { a: 'Julian Moore', b: 'Julia Moore', expected: 'different', category: 'false-positive' },
+  { a: 'Samir Haddad', b: 'Samira Haddad', expected: 'different', category: 'false-positive' },
+  { a: 'Robert Richards', b: 'Roberta Richards', expected: 'different', category: 'false-positive' },
+  { a: 'Christian Bale', b: 'Christina Bale', expected: 'different', category: 'false-positive' },
+  { a: 'Martin Perez', b: 'Martina Perez', expected: 'different', category: 'false-positive' },
+  { a: 'Simon Cowell', b: 'Simone Cowell', expected: 'different', category: 'false-positive' },
+  { a: 'Andre Silva', b: 'Andrea Silva', expected: 'different', category: 'false-positive' },
+  { a: 'Louis Vuitton', b: 'Louise Vuitton', expected: 'different', category: 'false-positive' },
+  { a: 'Francis Bacon', b: 'Frances Bacon', expected: 'different', category: 'false-positive' },
+  { a: 'Nicolas Cage', b: 'Nicole Cage', expected: 'different', category: 'false-positive' },
+  { a: 'Adrian Newey', b: 'Adriana Newey', expected: 'different', category: 'false-positive' },
+  { a: 'Karim Benzema', b: 'Karima Benzema', expected: 'different', category: 'false-positive' },
+
+  /* ------------------------------ surname-drift ----------------------------- */
+  {
+    a: 'John Robert',
+    b: 'John Roberts',
+    expected: 'different',
+    category: 'false-positive',
+    note: 'Robert and Roberts are distinct surnames',
+  },
+  { a: 'Mark Richard', b: 'Mark Richards', expected: 'different', category: 'false-positive' },
+  { a: 'Tom Clark', b: 'Tom Clarke', expected: 'match', category: 'false-positive', note: 'Clark/Clarke is an attested spelling variant of one surname' },
+  { a: 'Anna Brown', b: 'Anna Browne', expected: 'match', category: 'false-positive' },
+  { a: 'Paul Harris', b: 'Paul Harrison', expected: 'different', category: 'false-positive' },
+  { a: 'Emma Thomas', b: 'Emma Thompson', expected: 'different', category: 'false-positive' },
+  { a: 'David Johnson', b: 'David Johnston', expected: 'different', category: 'false-positive' },
+  { a: 'Sara Bergman', b: 'Sara Bergmann', expected: 'match', category: 'false-positive' },
+
+  /* ------------------------------ adversarial ------------------------------- */
+  {
+    a: 'John Smith',
+    b: 'Jon Smyth',
+    expected: 'match',
+    category: 'adversarial',
+    note: 'Both parts are attested spelling variants; risky but correct to match',
+  },
+  {
+    a: 'Muhammad Ali',
+    b: 'Mohamed Aly',
+    expected: 'match',
+    category: 'adversarial',
+  },
+  {
+    a: 'Zhang Wei',
+    b: 'Chang Wei',
+    expected: 'different',
+    category: 'adversarial',
+    note: 'Different pinyin surnames one edit apart',
+  },
+  {
+    a: 'Hassan Ahmed',
+    b: 'Hussain Ahmed',
+    expected: 'different',
+    category: 'adversarial',
+    note: 'Two separate Arabic given names that share most consonants',
+  },
+  {
+    a: 'Amit Shah',
+    b: 'Ankit Shah',
+    expected: 'different',
+    category: 'adversarial',
+  },
+  {
+    a: 'Sanjay Dutt',
+    b: 'Sanjiv Dutt',
+    expected: 'different',
+    category: 'adversarial',
+  },
+  {
+    a: 'Aditya Roy',
+    b: 'Aditi Roy',
+    expected: 'different',
+    category: 'adversarial',
+  },
+  {
+    a: 'Marco Rossi',
+    b: 'Mario Rossi',
+    expected: 'different',
+    category: 'adversarial',
+  },
+  {
+    a: 'Alan Turing',
+    b: 'Alain Turing',
+    expected: 'match',
+    category: 'adversarial',
+    note: 'One inserted letter in a longer given name reads as a spelling variant',
+  },
+  {
+    a: 'Lars Andersen',
+    b: 'Lars Anderson',
+    expected: 'match',
+    category: 'adversarial',
+  },
+  {
+    a: 'Petr Novak',
+    b: 'Peter Novak',
+    expected: 'match',
+    category: 'adversarial',
+  },
+  {
+    a: 'Ivan Petrov',
+    b: 'Ivan Popov',
+    expected: 'different',
+    category: 'adversarial',
+  },
+  {
+    a: 'Grace Hopper',
+    b: 'Gracie Hooper',
+    expected: 'different',
+    category: 'adversarial',
+    note: 'Two independent differences in the same pair',
+  },
+  {
+    a: 'Sandra Bullock',
+    b: 'Sandy Bullock',
+    expected: 'match',
+    category: 'adversarial',
+  },
+  {
+    a: 'Alexander Wang',
+    b: 'Alexandra Wang',
+    expected: 'different',
+    category: 'adversarial',
+  },
+  {
+    a: 'Jean Dupont',
+    b: 'Joan Dupont',
+    expected: 'different',
+    category: 'adversarial',
+  },
+  {
+    a: 'Aaron Cohen',
+    b: 'Erin Cohen',
+    expected: 'different',
+    category: 'adversarial',
+  },
+  {
+    a: 'Noor Hussein',
+    b: 'Nour Hussain',
+    expected: 'match',
+    category: 'adversarial',
+  },
+  {
+    a: 'Kwame Nkrumah',
+    b: 'Kwame Nkruma',
+    expected: 'match',
+    category: 'adversarial',
+  },
+  {
+    a: 'Chinedu Okafor',
+    b: 'Chinedu Okonkwo',
+    expected: 'different',
+    category: 'adversarial',
+  },
+
+  /* -------------------------------- messy ---------------------------------- */
+  { a: '  John   Smith  ', b: 'John Smith', expected: 'match', category: 'whitespace' },
+  { a: 'John\tSmith', b: 'John Smith', expected: 'match', category: 'whitespace' },
+  { a: 'SMITH,JOHN', b: 'John Smith', expected: 'match', category: 'whitespace' },
+  { a: 'John Smith (deceased)', b: 'John Smith', expected: 'match', category: 'noise' },
+  { a: 'John Smith #2', b: 'John Smith', expected: 'match', category: 'noise' },
+  { a: 'John "Jack" Smith', b: 'John Jack Smith', expected: 'match', category: 'noise' },
+  { a: '', b: '', expected: 'match', category: 'degenerate' },
+  { a: '', b: 'John Smith', expected: 'different', category: 'degenerate' },
+  { a: '   ', b: 'John Smith', expected: 'different', category: 'degenerate' },
+  { a: '123', b: 'John Smith', expected: 'different', category: 'degenerate' },
+
+  /* ------------------------------ cross-script ------------------------------ */
+  {
+    a: '王伟',
+    b: 'Wang Wei',
+    expected: 'match',
+    category: 'cross-script',
+    note: 'Only the surname is mapped; the engine should still favour a match',
+  },
+  {
+    a: '李明',
+    b: 'Li Ming',
+    expected: 'match',
+    category: 'cross-script',
+  },
+  {
+    a: '王伟',
+    b: 'Chen Wei',
+    expected: 'different',
+    category: 'cross-script',
+  },
+  {
+    a: 'שרה כהן',
+    b: 'Sara Cohen',
+    expected: 'match',
+    category: 'cross-script',
+  },
+  /* ------------------------ english hypocorisms -------------------------- */
+  /*
+   * English is this package's primary target, and the hypocorisms below are
+   * the cases a rule cannot reach: none of these short forms is a prefix,
+   * suffix or phonetic reduction of the full name. Only a dictionary recovers
+   * them, so they are pinned here to keep that dictionary honest.
+   */
+  { a: 'Peggy Wilson', b: 'Margaret Wilson', expected: 'match', category: 'hypocorism' },
+  { a: 'Polly Adams', b: 'Mary Adams', expected: 'match', category: 'hypocorism' },
+  { a: 'Sally Brooks', b: 'Sarah Brooks', expected: 'match', category: 'hypocorism' },
+  { a: 'Nancy Foster', b: 'Ann Foster', expected: 'match', category: 'hypocorism' },
+  { a: 'Hank Turner', b: 'Henry Turner', expected: 'match', category: 'hypocorism' },
+  { a: 'Chuck Bennett', b: 'Charles Bennett', expected: 'match', category: 'hypocorism' },
+  { a: 'Ned Whitfield', b: 'Edward Whitfield', expected: 'match', category: 'hypocorism' },
+  { a: 'Dot Harrison', b: 'Dorothy Harrison', expected: 'match', category: 'hypocorism' },
+  { a: 'Sadie Cooper', b: 'Sarah Cooper', expected: 'match', category: 'hypocorism' },
+  { a: 'Libby Morgan', b: 'Elizabeth Morgan', expected: 'match', category: 'hypocorism' },
+  { a: 'Gus Ellis', b: 'Augustus Ellis', expected: 'match', category: 'hypocorism' },
+  { a: 'Nate Baker', b: 'Nathaniel Baker', expected: 'match', category: 'hypocorism' },
+  { a: 'Ollie Hughes', b: 'Oliver Hughes', expected: 'match', category: 'hypocorism' },
+  { a: 'Zeke Palmer', b: 'Ezekiel Palmer', expected: 'match', category: 'hypocorism' },
+  { a: 'Trish Sutherland', b: 'Patricia Sutherland', expected: 'match', category: 'hypocorism' },
+  { a: 'Millie Ashworth', b: 'Mildred Ashworth', expected: 'match', category: 'hypocorism' },
+  { a: 'Winnie Kingsley', b: 'Winifred Kingsley', expected: 'match', category: 'hypocorism' },
+  { a: 'Bram Pemberton', b: 'Abraham Pemberton', expected: 'match', category: 'hypocorism' },
+  { a: 'Tillie Foster', b: 'Matilda Foster', expected: 'match', category: 'hypocorism' },
+  { a: 'Effie Baker', b: 'Euphemia Baker', expected: 'match', category: 'hypocorism' },
+  { a: 'Nell Walker', b: 'Eleanor Walker', expected: 'match', category: 'hypocorism' },
+  { a: 'Lottie Bennett', b: 'Charlotte Bennett', expected: 'match', category: 'hypocorism' },
+  {
+    a: 'Steve Rogers',
+    b: 'Steven Rogers',
+    expected: 'match',
+    category: 'hypocorism',
+    note: 'Steve is listed under Stephen; Stephen and Steven are variants. Needs the closure over both tables.',
+  },
+  {
+    a: 'Cathy Brown',
+    b: 'Katherine Brown',
+    expected: 'match',
+    category: 'hypocorism',
+    note: 'Cathy is listed under Catherine, which is a variant of Katherine.',
+  },
+  {
+    a: 'Jeff Walker',
+    b: 'Geoffrey Walker',
+    expected: 'match',
+    category: 'hypocorism',
+    note: 'Jeff is listed under Jeffrey, which is a variant of Geoffrey.',
+  },
+  {
+    a: 'Peggy Wilson',
+    b: 'Peter Wilson',
+    expected: 'different',
+    category: 'hypocorism',
+    note: 'A short form must not match an unrelated name that merely shares a letter or two',
+  },
+  {
+    a: 'Nate Baker',
+    b: 'Kate Baker',
+    expected: 'different',
+    category: 'hypocorism',
+    note: 'Both are attested short forms of different names, one edit apart',
+  },
+
+  /* --------------------- english surname conventions --------------------- */
+  { a: 'John McDonald', b: 'John MacDonald', expected: 'match', category: 'english-surname' },
+  { a: 'Ian Macdonald', b: 'Ian McDonald', expected: 'match', category: 'english-surname' },
+  { a: 'Sean McCarthy', b: 'Sean MacCarthy', expected: 'match', category: 'english-surname' },
+  { a: 'Alan McGregor', b: 'Alan MacGregor', expected: 'match', category: 'english-surname' },
+  { a: 'David Davies', b: 'David Davis', expected: 'match', category: 'english-surname' },
+  { a: 'Emma Stuart', b: 'Emma Stewart', expected: 'match', category: 'english-surname' },
+  { a: "Patrick O'Brien", b: 'Patrick OBrien', expected: 'match', category: 'english-surname' },
+  {
+    a: 'John McDonald',
+    b: 'John MacArthur',
+    expected: 'different',
+    category: 'english-surname',
+    note: 'A shared Mc/Mac prefix is not a match',
+  },
+  {
+    a: 'Sally Brooks',
+    b: 'Sally Brook',
+    expected: 'different',
+    category: 'english-surname',
+    note: 'A trailing s marks a separate English family name',
+  },
+  { a: 'Ann Woods', b: 'Ann Wood', expected: 'different', category: 'english-surname' },
+  { a: 'Gus Ellis', b: 'Gus Ellison', expected: 'different', category: 'english-surname' },
+  {
+    a: 'Emma Evans',
+    b: 'Emma Evan',
+    expected: 'different',
+    category: 'english-surname',
+  },
+
+  /* ---------------------- english record conventions --------------------- */
+  {
+    a: 'John "Jack" Smith',
+    b: 'John Smith',
+    expected: 'match',
+    category: 'english-record',
+    note: 'Quoted nickname inline, a common US records convention',
+  },
+  { a: 'Robert (Bob) Taylor', b: 'Robert Taylor', expected: 'match', category: 'english-record' },
+  { a: 'SMITH JOHN A', b: 'John A Smith', expected: 'match', category: 'english-record' },
+  { a: 'Smith, John A.', b: 'John Alan Smith', expected: 'match', category: 'english-record' },
+  /* ---------------------- indian romanisation ---------------------------- */
+  /*
+   * Indic names have no standard romanisation, so the same person appears
+   * under half a dozen spellings. These are the folds that matter: aspirated
+   * consonants losing their `h`, `ee`/`oo` collapsing to `i`/`u`, and `ksh`
+   * written `x`.
+   */
+  { a: 'Geetha Krishnan', b: 'Geeta Krishnan', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Kavitha Reddy', b: 'Kavita Reddy', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Sujatha Nair', b: 'Sujata Nair', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Sangeetha Iyer', b: 'Sangeeta Iyer', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Smitha Rao', b: 'Smita Rao', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Anitha Menon', b: 'Anita Menon', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Lakshmi Narayanan', b: 'Laxmi Narayanan', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Akshay Kumar', b: 'Akshai Kumar', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Rajeev Menon', b: 'Rajiv Menon', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Suneel Gupta', b: 'Sunil Gupta', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Anoop Nambiar', b: 'Anup Nambiar', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Swaroop Rao', b: 'Swarup Rao', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Bhavesh Patel', b: 'Bavesh Patel', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Dhruv Sharma', b: 'Druv Sharma', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Padmanabhan Iyer', b: 'Padmanaban Iyer', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Mukherjee Sen', b: 'Mukerjee Sen', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Krishnamurthy Rao', b: 'Krishnamurti Rao', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Vishwanathan Anand', b: 'Viswanathan Anand', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Chandrasekhar Rao', b: 'Chandrashekar Rao', expected: 'match', category: 'indic-romanisation' },
+  { a: 'Subramanian Iyer', b: 'Subramaniam Iyer', expected: 'match', category: 'indic-romanisation' },
+  {
+    a: 'Manoj Tiwari',
+    b: 'Manoj Tiwary',
+    expected: 'match',
+    category: 'indic-romanisation',
+    note: 'Tiwari and Tiwary are one surname; the final y/i alternation is orthographic',
+  },
+  {
+    a: 'Ravi Shankar',
+    b: 'Ravi Shankaran',
+    expected: 'match',
+    category: 'indic-romanisation',
+    note: 'The Tamil -an ending, consistent with Krishna/Krishnan being treated as one name',
+  },
+  {
+    a: 'Amit Shah',
+    b: 'Amit Sah',
+    expected: 'different',
+    category: 'indic-romanisation',
+    note: 'Shah and Sah are separate surnames; sh/s is deliberately NOT folded',
+  },
+
+  /* ------------------------ indian initials ------------------------------ */
+  /*
+   * South Indian naming puts the father's name or village first, abbreviated
+   * to initials. The full form is rarely written, so an initials-only record
+   * matching its expansion is the common case, not the exception.
+   */
+  { a: 'S Ramesh', b: 'Sundaram Ramesh', expected: 'match', category: 'indian-initials' },
+  { a: 'M S Dhoni', b: 'Mahendra Singh Dhoni', expected: 'match', category: 'indian-initials' },
+  { a: 'R Madhavan', b: 'Ranganathan Madhavan', expected: 'match', category: 'indian-initials' },
+  {
+    a: 'V V S Laxman',
+    b: 'Vangipurappu Venkata Sai Laxman',
+    expected: 'match',
+    category: 'indian-initials',
+  },
+  {
+    a: 'S Ramesh',
+    b: 'Krishnan Ramesh',
+    expected: 'different',
+    category: 'indian-initials',
+    note: 'The leading initial contradicts the expansion',
+  },
+
+  /* ------------------------ indian record forms -------------------------- */
+  {
+    a: 'Rajesh Kumar S/O Suresh',
+    b: 'Rajesh Kumar',
+    expected: 'match',
+    category: 'indian-record',
+    note: 'S/O introduces the father, a different person; it must be dropped',
+  },
+  {
+    a: 'Priya Sharma D/O Ramesh',
+    b: 'Priya Sharma',
+    expected: 'match',
+    category: 'indian-record',
+  },
+  {
+    a: 'Sunita Devi W/O Ram Prasad',
+    b: 'Sunita Devi',
+    expected: 'match',
+    category: 'indian-record',
+  },
+  { a: 'Smt Sunita Devi', b: 'Sunita Devi', expected: 'match', category: 'indian-record' },
+  { a: 'Thiru M Karunanidhi', b: 'M Karunanidhi', expected: 'match', category: 'indian-record' },
+  { a: 'Sharma Rahul', b: 'Rahul Sharma', expected: 'match', category: 'indian-record' },
+  { a: 'Ram Kumar Yadav', b: 'Ramkumar Yadav', expected: 'match', category: 'indian-record' },
+  {
+    a: 'Rajesh Kumar S/O Suresh',
+    b: 'Suresh Kumar',
+    expected: 'different',
+    category: 'indian-record',
+    note: 'Matching the subject against the father is the failure this convention causes',
+  },
+
+  /* ----------------------- indian false positives ------------------------ */
+  { a: 'Rajesh Kumar', b: 'Ramesh Kumar', expected: 'different', category: 'indian-false-positive' },
+  { a: 'Sunil Sharma', b: 'Sunita Sharma', expected: 'different', category: 'indian-false-positive' },
+  { a: 'Anil Kapoor', b: 'Anita Kapoor', expected: 'different', category: 'indian-false-positive' },
+  { a: 'Naresh Goyal', b: 'Suresh Goyal', expected: 'different', category: 'indian-false-positive' },
+  { a: 'Priya Menon', b: 'Riya Menon', expected: 'different', category: 'indian-false-positive' },
+  { a: 'Vijay Kumar', b: 'Ajay Kumar', expected: 'different', category: 'indian-false-positive' },
+  { a: 'Deepak Verma', b: 'Deepika Verma', expected: 'different', category: 'indian-false-positive' },
+  { a: 'Sanjay Dutt', b: 'Sanjiv Dutt', expected: 'different', category: 'indian-false-positive' },
+  { a: 'Meena Iyer', b: 'Veena Iyer', expected: 'different', category: 'indian-false-positive' },
+  { a: 'Nitin Desai', b: 'Nithin Desai', expected: 'match', category: 'indic-romanisation' },
+  /* ------------------------- readme examples ----------------------------- */
+  /*
+   * The pairs the README leads with. Pinned so the documented scores cannot
+   * drift away from what the engine actually does.
+   */
+  {
+    a: 'Satyendra Sagar Singh',
+    b: 'S S Singh',
+    expected: 'match',
+    category: 'indian-initials',
+    note: 'README headline example',
+  },
+  {
+    a: 'सत्येंद्र सागर सिंह',
+    b: 'Satyendra Sagar Singh',
+    expected: 'match',
+    category: 'transliteration',
+    note: 'README headline example',
+  },
+  {
+    a: 'Satyendra Sagar Singh',
+    b: 'Singh, Satyendra Sagar',
+    expected: 'match',
+    category: 'indian-record',
+  },
+  {
+    a: 'Shri Satyendra Sagar Singh S/O Ram Singh',
+    b: 'Satyendra Sagar Singh',
+    expected: 'match',
+    category: 'indian-record',
+    note: 'Honorific stripped and the S/O clause dropped in one pass',
+  },
+  {
+    a: 'Satyendra Sagar Singh',
+    b: 'Satyendra Kumar Singh',
+    expected: 'different',
+    category: 'indian-false-positive',
+    note: 'README negative-evidence example: identical given and family, contradictory middle',
+  },
+  {
+    a: 'Satyendra Sagar Singh',
+    b: 'Surendra Sagar Singh',
+    expected: 'different',
+    category: 'indian-false-positive',
+  },
+];
+
+export default pairs;
