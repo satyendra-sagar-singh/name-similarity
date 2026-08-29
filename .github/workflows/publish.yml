@@ -1,0 +1,40 @@
+name: Publish
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci
+
+      # A tag whose version does not match package.json produces an npm release
+      # that no git tag describes — and npm versions cannot be republished.
+      - name: Check the tag matches package.json
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Tag $TAG_VERSION does not match package.json $PKG_VERSION"
+            exit 1
+          fi
+
+      # The benchmark tests that prepublishOnly runs read the held-out set, the
+      # same way ci.yml regenerates it before testing.
+      - name: Build held-out benchmark set
+        run: npm run dataset:build -- --seed 777001 --out datasets/benchmark/holdout.json --no-curated
+
+      # prepublishOnly runs typecheck, tests, build and check:package.
+      - run: npm publish
